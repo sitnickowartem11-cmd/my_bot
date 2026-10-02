@@ -1,0 +1,184 @@
+# app/messages.py
+# Все текстовые сообщения бота в HTML-формате (праздничный UX)
+
+WELCOME_TEXT = """
+<b>❄️✨ Добро пожаловать в волшебный мир Тайного Санты! ✨❄️</b>
+
+🎁 Здесь рождаются сюрпризы и тёплые истории под ёлкой.  
+🎄 Создайте игру, пригласите друзей и пусть начнётся праздник!
+
+📜 Для списка команд отправьте <b>/help</b> или воспользуйтесь кнопками ниже 🎅
+"""
+
+HELP_TEXT = """
+<b>🎄 Команды Тайного Санты</b>
+
+<b>/start</b> — начать общение с ботом  
+<b>/help</b> — показать это меню  
+
+<b>/newgame</b> — создать новую игру  
+<b>/join КОД</b> — присоединиться к игре по коду  
+<b>/wish текст</b> — указать свои пожелания к подарку  
+
+<b>/mytargets</b> — ваши получатели во всех играх  
+<b>/mygames</b> — список игр, в которых вы участвуете  
+<b>/players</b> — участники последней активной игры  
+<b>/gameinfo КОД</b> — подробная информация об игре  
+
+<b>/startgame</b> — запустить жеребьёвку (для создателя игры)  
+<b>/finishgame</b> — завершить игру (для создателя игры)  
+
+<b>/status</b> — общая статистика по боту
+
+🎁 Большинство действий доступны через кнопки — попробуйте!
+"""
+
+GAME_CREATED = """
+<b>🎉 Игра создана!</b>
+
+<b>Название:</b> {name}  
+<b>Код игры:</b> <code>{code}</code>
+
+Вы можете пригласить друзей по ссылке:  
+<a href="https://t.me/{bot}?start=join_{code}">https://t.me/{bot}?start=join_{code}</a>
+
+Когда все будут готовы — используйте <b>/startgame</b> или кнопку «Запустить жеребьёвку».
+"""
+
+GAME_ALREADY_EXISTS = """
+<b>⚠️ У вас уже есть активная игра.</b>
+
+Вы можете:  
+— продолжить её  
+— или выйти командой <b>/finishgame</b> (если вы создатель)  
+— или покинуть игру, если будет добавлена такая команда.
+"""
+
+GAME_NOT_FOUND = """
+<b>❌ Игра с таким кодом не найдена.</b>  
+Проверьте код и попробуйте снова.
+"""
+
+JOINED_GAME = """
+<b>🎉 Вы присоединились к игре!</b>
+
+Ожидайте, пока организатор запустит жеребьёвку командой <b>/startgame</b>  
+или через кнопку «Запустить жеребьёвку».
+"""
+
+ALREADY_IN_GAME = """
+<b>⚠️ Вы уже участвуете в этой игре.</b>
+"""
+
+LEFT_GAME = """
+<b>🚪 Вы вышли из игры.</b>
+"""
+
+NO_ACTIVE_GAME = """
+<b>⚠️ У вас нет активной игры.</b>
+"""
+
+PARTICIPANTS_HEADER = """
+<b>👥 Участники игры {name}:</b>
+"""
+
+NO_PARTICIPANTS = """
+<b>⚠️ В игре пока нет участников.</b>
+"""
+
+GAME_STARTED = """
+<b>🎁 Жеребьёвка завершена!</b>
+
+Каждый участник получил своего получателя.  
+Используйте <b>/mytargets</b> или кнопку «Мои получатели», чтобы узнать, кому вы дарите подарок 🎄
+"""
+
+RECIPIENT_INFO = """
+<b>🎁 Вы дарите подарок:</b> {display}
+<b>Пожелания:</b> {wishlist}
+"""
+
+NO_RECIPIENT = """
+<b>⚠️ Жеребьёвка ещё не проведена.</b>  
+Создатель игры должен выполнить <b>/startgame</b>.
+"""
+
+NEWGAME_PROMPT = """
+<b>🆕 Давайте создадим новую игру!</b>
+
+Введите название игры одним сообщением.  
+Например: <i>Новый год в офисе</i> или <i>ДЛя своих 26</i>.
+"""
+
+STARTGAME_NOTIFY = """
+<b>🎁 Ваш получатель в игре:</b> {game_name}
+
+<b>Кому дарите:</b> {display}  
+<b>Пожелания:</b> {wishlist}
+"""
+
+FINISHGAME = """
+<b>🏁 Игра «{name}» завершена!</b>
+
+Спасибо всем за участие 🎄
+"""
+
+GAMEINFO = """
+<b>🎄 Информация об игре</b>
+
+<b>Название:</b> {name}  
+<b>Код:</b> <code>{code}</code>  
+<b>Создатель:</b> {creator}  
+<b>Статус:</b> {status}  
+<b>Бюджет:</b> {budget}  
+<b>Создана:</b> {created}  
+<b>Участников:</b> {count}
+
+{extra}
+"""
+
+STATUS = """
+<b>📊 Статистика по боту</b>
+
+Всего игр: <b>{total}</b>  
+Активных игр: <b>{active}</b>  
+Ждут старта: <b>{waiting}</b>  
+Завершено: <b>{finished}</b>  
+
+Уникальных участников: <b>{players}</b>  
+Очередь обновлений: <b>{queue}</b>
+"""
+
+UNKNOWN_COMMAND = """
+❓ Неизвестная команда.  
+Используйте <b>/help</b> или кнопки внизу.
+"""
+
+ERROR_MESSAGE = """
+<b>❌ Произошла ошибка.</b>  
+Попробуйте ещё раз позже.
+"""
+
+MESSAGES = {
+    "start_welcome": WELCOME_TEXT,
+    "help": HELP_TEXT,
+    "game_created": GAME_CREATED,
+    "game_already_exists": GAME_ALREADY_EXISTS,
+    "game_not_found": GAME_NOT_FOUND,
+    "joined_game": JOINED_GAME,
+    "already_in_game": ALREADY_IN_GAME,
+    "left_game": LEFT_GAME,
+    "no_active_game": NO_ACTIVE_GAME,
+    "participants_header": PARTICIPANTS_HEADER,
+    "no_participants": NO_PARTICIPANTS,
+    "game_started": GAME_STARTED,
+    "recipient_info": RECIPIENT_INFO,
+    "no_recipient": NO_RECIPIENT,
+    "newgame_prompt": NEWGAME_PROMPT,
+    "startgame_notify": STARTGAME_NOTIFY,
+    "finishgame": FINISHGAME,
+    "gameinfo": GAMEINFO,
+    "status": STATUS,
+    "unknown_command": UNKNOWN_COMMAND,
+    "error": ERROR_MESSAGE,
+}
