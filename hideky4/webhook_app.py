@@ -5,9 +5,9 @@ import os
 import logging
 from flask import Flask, request, jsonify
 
-from app.worker import start_worker
-from app.database import init_db, SessionLocal
-from app.models import Game, Participant
+from hideky4.worker import start_worker
+from hideky4.database import init_db, SessionLocal
+from hideky4.models import Game, Participant
 
 # ---------------------------------------------------------
 # ЛОГИ
