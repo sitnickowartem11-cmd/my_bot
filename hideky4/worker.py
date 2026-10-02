@@ -38,6 +38,22 @@ def _safe_message_date_to_int(msg_date) -> int:
         return int(_dt.utcnow().timestamp())
 
 
+def make_fake_message(callback_query: types.CallbackQuery, command_text: str) -> types.Message:
+    """Безопасно создает фейковый объект Message для вызова хендлеров команд из callback-кнопок."""
+    msg_date_int = _safe_message_date_to_int(callback_query.message.date)
+    
+    # Создаем базовый объект
+    fake_msg = types.Message(
+        message_id=callback_query.message.message_id,
+        date=msg_date_int,
+        chat=callback_query.message.chat,
+        text=command_text
+    )
+    # Явно устанавливаем from_user, чтобы избежать проблемы 'NoneType' object has no attribute 'id'
+    fake_msg.from_user = callback_query.from_user
+    return fake_msg
+
+
 def start_worker(bot_token: str, bot_username: str):
     """Запускает aiogram worker в отдельном потоке."""
 
@@ -460,7 +476,6 @@ def start_worker(bot_token: str, bot_username: str):
             data = callback_query.data
             uid = callback_query.from_user.id
             chat_id = callback_query.message.chat.id
-            msg_date_int = _safe_message_date_to_int(callback_query.message.date)
 
             if data == "menu_help":
                 await bot.send_message(chat_id, MESSAGES["help"])
@@ -470,63 +485,27 @@ def start_worker(bot_token: str, bot_username: str):
                 await bot.send_message(chat_id, MESSAGES["newgame_prompt"])
 
             elif data == "menu_mytargets":
-                fake_msg = types.Message(
-                    message_id=callback_query.message.message_id,
-                    date=msg_date_int,
-                    chat=callback_query.message.chat,
-                    from_user=callback_query.from_user,
-                    text="/mytargets"
-                )
+                fake_msg = make_fake_message(callback_query, "/mytargets")
                 await cmd_mytargets(fake_msg)
 
             elif data == "menu_mygames":
-                fake_msg = types.Message(
-                    message_id=callback_query.message.message_id,
-                    date=msg_date_int,
-                    chat=callback_query.message.chat,
-                    from_user=callback_query.from_user,
-                    text="/mygames"
-                )
+                fake_msg = make_fake_message(callback_query, "/mygames")
                 await cmd_mygames(fake_msg)
 
             elif data == "menu_players":
-                fake_msg = types.Message(
-                    message_id=callback_query.message.message_id,
-                    date=msg_date_int,
-                    chat=callback_query.message.chat,
-                    from_user=callback_query.from_user,
-                    text="/players"
-                )
+                fake_msg = make_fake_message(callback_query, "/players")
                 await cmd_players(fake_msg)
 
             elif data == "menu_status":
-                fake_msg = types.Message(
-                    message_id=callback_query.message.message_id,
-                    date=msg_date_int,
-                    chat=callback_query.message.chat,
-                    from_user=callback_query.from_user,
-                    text="/status"
-                )
+                fake_msg = make_fake_message(callback_query, "/status")
                 await cmd_status(fake_msg)
 
             elif data == "menu_startgame":
-                fake_msg = types.Message(
-                    message_id=callback_query.message.message_id,
-                    date=msg_date_int,
-                    chat=callback_query.message.chat,
-                    from_user=callback_query.from_user,
-                    text="/startgame"
-                )
+                fake_msg = make_fake_message(callback_query, "/startgame")
                 await cmd_startgame(fake_msg)
 
             elif data == "menu_finishgame":
-                fake_msg = types.Message(
-                    message_id=callback_query.message.message_id,
-                    date=msg_date_int,
-                    chat=callback_query.message.chat,
-                    from_user=callback_query.from_user,
-                    text="/finishgame"
-                )
+                fake_msg = make_fake_message(callback_query, "/finishgame")
                 await cmd_finishgame(fake_msg)
 
             await bot.answer_callback_query(callback_query.id)
