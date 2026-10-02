@@ -5,9 +5,9 @@ import logging
 import random
 from datetime import datetime
 
-from app.database import SessionLocal
-from app.models import Game, Participant
-from app.utils import generate_game_id
+from hideky4.database import SessionLocal
+from hideky4.models import Game, Participant
+from hideky4.utils import generate_game_id
 
 logger = logging.getLogger(__name__)
 

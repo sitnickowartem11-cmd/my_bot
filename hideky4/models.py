@@ -7,7 +7,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
-from app.database import Base
+from hideky4.database import Base
 
 
 class Game(Base):
