@@ -14,11 +14,11 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from app.manager import GameManager
-from app.messages import MESSAGES
-from app.utils import username_is_valid_for_link
-from app.database import SessionLocal
-from app.models import Game, Participant
+from hideky4.manager import GameManager
+from hideky4.messages import MESSAGES
+from hideky4.utils import username_is_valid_for_link
+from hideky4.database import SessionLocal
+from hideky4.models import Game, Participant
 
 logger = logging.getLogger(__name__)
 
