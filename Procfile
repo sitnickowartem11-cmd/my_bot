@@ -1,1 +1,1 @@
-web: gunicorn hideky4.webhook_app:app --workers 1 --threads 4 --timeout 120
+python -m hideky4.main
