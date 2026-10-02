@@ -1,0 +1,16 @@
+Flask==2.3.0
+gunicorn==21.2.0
+
+aiogram==2.25.1
+aiohttp==3.8.6
+
+SQLAlchemy==1.4.54
+psycopg2-binary==2.9.9
+
+python-dotenv==1.0.1
+
+# Для корректной работы asyncio и планировщика
+APScheduler==3.10.1
+
+# Утилиты
+typing-extensions==4.15.0
