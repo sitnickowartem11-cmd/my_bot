@@ -1,1 +1,1 @@
-web: python -m hideky4.worker
+web: gunicorn app.webhook_app:app --bind 0.0.0.0:$PORT
