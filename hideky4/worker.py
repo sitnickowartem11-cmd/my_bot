@@ -1,14 +1,11 @@
 # app/worker.py
 # Aiogram background worker: обрабатывает команды Telegram-бота (HTML + UX)
-# Исправлена работа с сессиями SQLAlchemy, обработка callback'ов, логирование неудачных DM,
-# и устранены DetachedInstanceError и проблемы с датой в fake Message.
 
 import asyncio
 import logging
 import queue
 import threading
 from datetime import datetime as _dt
-from typing import Optional
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -156,7 +153,6 @@ def start_worker(bot_token: str, bot_username: str):
                     await bot.send_message(message.chat.id, "❌ У вас нет игр, которые можно запустить.")
                     return
 
-                # Сохраняем простые значения, чтобы не обращаться к detached-объекту позже
                 game_id = game.id
                 game_name = game.name
 
@@ -166,7 +162,6 @@ def start_worker(bot_token: str, bot_username: str):
                 if ok:
                     await bot.send_message(message.chat.id, MESSAGES["game_started"])
 
-                    # Открываем новую сессию для рассылки — не используем старый объект game
                     db2 = SessionLocal()
                     failed = []
                     try:
@@ -175,7 +170,6 @@ def start_worker(bot_token: str, bot_username: str):
                         ).all()
 
                         for p in participants:
-                            # проверяем, что user_id — int
                             try:
                                 uid = int(p.user_id)
                             except Exception:
@@ -184,7 +178,6 @@ def start_worker(bot_token: str, bot_username: str):
                                 continue
 
                             if not p.target_id:
-                                # если нет target_id — пропускаем
                                 failed.append((uid, "no target assigned"))
                                 continue
 
@@ -216,7 +209,6 @@ def start_worker(bot_token: str, bot_username: str):
                     finally:
                         db2.close()
 
-                    # Если были неудачные отправки — уведомляем создателя в чате
                     if failed:
                         text_lines = ["<b>⚠️ Некоторым участникам не удалось отправить личные сообщения:</b>"]
                         for uid, reason in failed:
@@ -559,7 +551,6 @@ def start_worker(bot_token: str, bot_username: str):
 
                 try:
                     g = GameManager.create_game(uid, creator_full, game_name, creator_tg)
-                    # проверка, что участник создан
                     db = SessionLocal()
                     try:
                         exists = db.query(Participant).filter(Participant.game_id == g["id"], Participant.user_id == uid).first()
@@ -584,7 +575,6 @@ def start_worker(bot_token: str, bot_username: str):
                     await bot.send_message(message.chat.id, "❌ Не удалось создать игру.")
                 return
 
-            # Если текст похож на код игры
             if len(text) == 8 and text.isalnum():
                 await bot.send_message(
                     message.chat.id,
@@ -624,20 +614,16 @@ def start_worker(bot_token: str, bot_username: str):
         try:
             loop.run_forever()
         finally:
-            # корректное закрытие сессии бота
+            async def _close():
+                session = await bot.get_session()
+                await session.close()
             try:
-                loop.run_until_complete(bot.get_session())
-            except Exception:
-                pass
-            try:
-                loop.run_until_complete(bot.session.close())
+                loop.run_until_complete(_close())
             except Exception:
                 pass
 
-    # Запускаем воркер в отдельном потоке
     thread = threading.Thread(target=worker, daemon=True)
     thread.start()
 
     logger.info("Background worker thread started")
     return update_queue
-

@@ -59,7 +59,7 @@ def version():
 init_db()
 
 # ---------------------------------------------------------
-# ЗАПУСК AIROGRAM WORKER
+# ЗАПУСК AIOGRAM WORKER
 # ---------------------------------------------------------
 
 update_queue = start_worker(BOT_TOKEN, BOT_USERNAME)
@@ -103,13 +103,19 @@ def set_webhook():
     from aiogram import Bot
     import asyncio
 
+    async def _set():
+        bot = Bot(token=BOT_TOKEN)
+        try:
+            await bot.set_webhook(WEBHOOK_URL)
+        finally:
+            session = await bot.get_session()
+            await session.close()
+
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-
-        bot = Bot(token=BOT_TOKEN)
-        loop.run_until_complete(bot.set_webhook(WEBHOOK_URL))
-        loop.run_until_complete(bot.session.close())
+        loop.run_until_complete(_set())
+        loop.close()
 
         return f"✅ Вебхук установлен: {WEBHOOK_URL}"
 
@@ -122,13 +128,19 @@ def delete_webhook():
     from aiogram import Bot
     import asyncio
 
+    async def _delete():
+        bot = Bot(token=BOT_TOKEN)
+        try:
+            await bot.delete_webhook()
+        finally:
+            session = await bot.get_session()
+            await session.close()
+
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-
-        bot = Bot(token=BOT_TOKEN)
-        loop.run_until_complete(bot.delete_webhook())
-        loop.run_until_complete(bot.session.close())
+        loop.run_until_complete(_delete())
+        loop.close()
 
         return "✅ Вебхук удалён"
 
