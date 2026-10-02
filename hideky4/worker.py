@@ -1,11 +1,13 @@
 # app/worker.py
 # Aiogram background worker: обрабатывает команды Telegram-бота (HTML + UX)
+# Исправлена работа с сессиями SQLAlchemy, обработка callback'ов, логирование неудачных DM,
+# и устранены DetachedInstanceError и проблемы с датой в fake Message.
 
 import asyncio
 import logging
 import queue
 import threading
-from datetime import datetime, timezone
+from datetime import datetime as _dt
 from typing import Optional
 
 from aiogram import Bot, Dispatcher, types
@@ -27,22 +29,22 @@ update_queue = queue.Queue()
 pending_new_game = set()
 
 
-def _safe_message_date(msg_date) -> datetime:
-    """Преобразует поле date из message в datetime безопасно."""
-    if isinstance(msg_date, datetime):
-        return msg_date
-    if isinstance(msg_date, (int, float)):
-        return datetime.fromtimestamp(msg_date, tz=timezone.utc)
-    return datetime.now(timezone.utc)
+def _safe_message_date_to_int(msg_date) -> int:
+    """Преобразует поле date из message в int timestamp безопасно."""
+    if msg_date is None:
+        return int(_dt.utcnow().timestamp())
+    if isinstance(msg_date, _dt):
+        return int(msg_date.timestamp())
+    try:
+        return int(msg_date)
+    except Exception:
+        return int(_dt.utcnow().timestamp())
 
 
 def start_worker(bot_token: str, bot_username: str):
     """Запускает aiogram worker в отдельном потоке."""
 
     def worker():
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
         bot = Bot(token=bot_token, parse_mode="HTML")
         dp = Dispatcher(bot, storage=MemoryStorage())
 
@@ -154,6 +156,7 @@ def start_worker(bot_token: str, bot_username: str):
                     await bot.send_message(message.chat.id, "❌ У вас нет игр, которые можно запустить.")
                     return
 
+                # Сохраняем простые значения, чтобы не обращаться к detached-объекту позже
                 game_id = game.id
                 game_name = game.name
 
@@ -163,6 +166,7 @@ def start_worker(bot_token: str, bot_username: str):
                 if ok:
                     await bot.send_message(message.chat.id, MESSAGES["game_started"])
 
+                    # Открываем новую сессию для рассылки — не используем старый объект game
                     db2 = SessionLocal()
                     failed = []
                     try:
@@ -171,6 +175,7 @@ def start_worker(bot_token: str, bot_username: str):
                         ).all()
 
                         for p in participants:
+                            # проверяем, что user_id — int
                             try:
                                 uid = int(p.user_id)
                             except Exception:
@@ -179,6 +184,7 @@ def start_worker(bot_token: str, bot_username: str):
                                 continue
 
                             if not p.target_id:
+                                # если нет target_id — пропускаем
                                 failed.append((uid, "no target assigned"))
                                 continue
 
@@ -210,6 +216,7 @@ def start_worker(bot_token: str, bot_username: str):
                     finally:
                         db2.close()
 
+                    # Если были неудачные отправки — уведомляем создателя в чате
                     if failed:
                         text_lines = ["<b>⚠️ Некоторым участникам не удалось отправить личные сообщения:</b>"]
                         for uid, reason in failed:
@@ -461,32 +468,74 @@ def start_worker(bot_token: str, bot_username: str):
             data = callback_query.data
             uid = callback_query.from_user.id
             chat_id = callback_query.message.chat.id
-            msg_date = _safe_message_date(callback_query.message.date)
-
-            command_map = {
-                "menu_mytargets": ("/mytargets", cmd_mytargets),
-                "menu_mygames": ("/mygames", cmd_mygames),
-                "menu_players": ("/players", cmd_players),
-                "menu_status": ("/status", cmd_status),
-                "menu_startgame": ("/startgame", cmd_startgame),
-                "menu_finishgame": ("/finishgame", cmd_finishgame),
-            }
+            msg_date_int = _safe_message_date_to_int(callback_query.message.date)
 
             if data == "menu_help":
                 await bot.send_message(chat_id, MESSAGES["help"])
+
             elif data == "menu_newgame":
                 pending_new_game.add(uid)
                 await bot.send_message(chat_id, MESSAGES["newgame_prompt"])
-            elif data in command_map:
-                cmd_text, handler = command_map[data]
+
+            elif data == "menu_mytargets":
                 fake_msg = types.Message(
                     message_id=callback_query.message.message_id,
-                    date=msg_date,
+                    date=msg_date_int,
                     chat=callback_query.message.chat,
                     from_user=callback_query.from_user,
-                    text=cmd_text
+                    text="/mytargets"
                 )
-                await handler(fake_msg)
+                await cmd_mytargets(fake_msg)
+
+            elif data == "menu_mygames":
+                fake_msg = types.Message(
+                    message_id=callback_query.message.message_id,
+                    date=msg_date_int,
+                    chat=callback_query.message.chat,
+                    from_user=callback_query.from_user,
+                    text="/mygames"
+                )
+                await cmd_mygames(fake_msg)
+
+            elif data == "menu_players":
+                fake_msg = types.Message(
+                    message_id=callback_query.message.message_id,
+                    date=msg_date_int,
+                    chat=callback_query.message.chat,
+                    from_user=callback_query.from_user,
+                    text="/players"
+                )
+                await cmd_players(fake_msg)
+
+            elif data == "menu_status":
+                fake_msg = types.Message(
+                    message_id=callback_query.message.message_id,
+                    date=msg_date_int,
+                    chat=callback_query.message.chat,
+                    from_user=callback_query.from_user,
+                    text="/status"
+                )
+                await cmd_status(fake_msg)
+
+            elif data == "menu_startgame":
+                fake_msg = types.Message(
+                    message_id=callback_query.message.message_id,
+                    date=msg_date_int,
+                    chat=callback_query.message.chat,
+                    from_user=callback_query.from_user,
+                    text="/startgame"
+                )
+                await cmd_startgame(fake_msg)
+
+            elif data == "menu_finishgame":
+                fake_msg = types.Message(
+                    message_id=callback_query.message.message_id,
+                    date=msg_date_int,
+                    chat=callback_query.message.chat,
+                    from_user=callback_query.from_user,
+                    text="/finishgame"
+                )
+                await cmd_finishgame(fake_msg)
 
             await bot.answer_callback_query(callback_query.id)
 
@@ -510,6 +559,7 @@ def start_worker(bot_token: str, bot_username: str):
 
                 try:
                     g = GameManager.create_game(uid, creator_full, game_name, creator_tg)
+                    # проверка, что участник создан
                     db = SessionLocal()
                     try:
                         exists = db.query(Participant).filter(Participant.game_id == g["id"], Participant.user_id == uid).first()
@@ -534,6 +584,7 @@ def start_worker(bot_token: str, bot_username: str):
                     await bot.send_message(message.chat.id, "❌ Не удалось создать игру.")
                 return
 
+            # Если текст похож на код игры
             if len(text) == 8 and text.isalnum():
                 await bot.send_message(
                     message.chat.id,
@@ -550,9 +601,9 @@ def start_worker(bot_token: str, bot_username: str):
             logger.info("Aiogram worker started")
             while True:
                 try:
-                    update_data = await loop.run_in_executor(None, update_queue.get, True, 1.0)
+                    update_data = update_queue.get(timeout=1)
                 except queue.Empty:
-                    await asyncio.sleep(0.01)
+                    await asyncio.sleep(0.1)
                     continue
 
                 try:
@@ -566,20 +617,27 @@ def start_worker(bot_token: str, bot_username: str):
                     except Exception:
                         pass
 
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         loop.create_task(process_queue())
 
         try:
             loop.run_forever()
         finally:
+            # корректное закрытие сессии бота
             try:
-                loop.run_until_complete(dp.storage.close())
-                loop.run_until_complete(dp.storage.wait_closed())
-                loop.run_until_complete(bot.close())
-            except Exception as e:
-                logger.error("Error closing bot session: %s", e)
+                loop.run_until_complete(bot.get_session())
+            except Exception:
+                pass
+            try:
+                loop.run_until_complete(bot.session.close())
+            except Exception:
+                pass
 
+    # Запускаем воркер в отдельном потоке
     thread = threading.Thread(target=worker, daemon=True)
     thread.start()
 
     logger.info("Background worker thread started")
     return update_queue
+
