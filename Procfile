@@ -1,1 +1,1 @@
-python -m hideky4.main
+worker: python -m hideky4.main
